@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react';
-import { Upload as UploadIcon, FileSpreadsheet, AlertTriangle, Check, X, Edit3 } from 'lucide-react';
+import { Upload as UploadIcon, FileSpreadsheet, AlertTriangle, Check, X, Edit3, Bell } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { saveTimetable, saveSubjects, clearAllData } from '@/lib/storage';
+import { saveTimetable, saveSubjects, clearAllData, getTimetable } from '@/lib/storage';
 import { TimetableEntry, Subject } from '@/types/attendance';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 export default function Upload() {
@@ -18,7 +18,6 @@ export default function Upload() {
   const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleDrag = (e: React.DragEvent) => {
@@ -104,16 +103,9 @@ export default function Upload() {
       setParsedData(timetableData);
       setShowPreview(true);
       
-      toast({
-        title: "File parsed successfully!",
-        description: `Found ${timetableData.length} timetable entries`,
-      });
+      toast.success(`File parsed successfully! Found ${timetableData.length} timetable entries`);
     } catch (error) {
-      toast({
-        title: "Error parsing file",
-        description: error instanceof Error ? error.message : "Please check the file format",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Please check the file format");
     } finally {
       setIsProcessing(false);
     }
@@ -136,10 +128,7 @@ export default function Upload() {
     
     saveSubjects(subjects);
     
-    toast({
-      title: "Timetable saved successfully!",
-      description: `Created ${subjects.length} subjects`,
-    });
+    toast.success(`Timetable saved successfully! Created ${subjects.length} subjects`);
     
     navigate('/');
   };
@@ -160,6 +149,41 @@ export default function Upload() {
 
   const removeEntry = (id: string) => {
     setParsedData(parsedData.filter(entry => entry.id !== id));
+  };
+
+  const testNotifications = () => {
+    const existingTimetable = getTimetable();
+    if (existingTimetable.length === 0) {
+      toast.error('No timetable data found. Please upload a timetable first.');
+      return;
+    }
+
+    // Group by day for better notification display
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const todayClasses = existingTimetable.filter(entry => 
+      entry.day.toLowerCase().includes(today.slice(0, 3))
+    );
+
+    if (todayClasses.length > 0) {
+      todayClasses.forEach((entry, index) => {
+        setTimeout(() => {
+          toast.success(`🔔 ${entry.subject}\n${entry.time} • ${entry.room || 'No room specified'}`, {
+            duration: 4000,
+            position: 'top-right',
+          });
+        }, index * 500);
+      });
+    } else {
+      // Show all classes if today's not found
+      existingTimetable.slice(0, 5).forEach((entry, index) => {
+        setTimeout(() => {
+          toast.success(`📚 ${entry.subject}\n${entry.day} • ${entry.time} • ${entry.room || 'No room'}`, {
+            duration: 4000,
+            position: 'top-right',
+          });
+        }, index * 500);
+      });
+    }
   };
 
   return (
@@ -258,12 +282,21 @@ export default function Upload() {
           </CardContent>
         </Card>
 
+        {/* Test Notifications Button */}
+        <Button 
+          onClick={testNotifications}
+          className="w-full bg-primary hover:bg-primary-hover"
+        >
+          <Bell className="h-4 w-4 mr-2" />
+          Test Notifications
+        </Button>
+
         {/* Clear Data Button */}
         <Button 
           variant="outline" 
           onClick={() => {
             clearAllData();
-            toast({ title: "All data cleared successfully!" });
+            toast.success('All data cleared successfully!');
           }}
           className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
         >
