@@ -1,0 +1,83 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Build web app
+      run: npm run build
+      
+    - name: Setup Capacitor
+      run: |
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+        npx cap init AttendFlow com.attendflow.app --web-dir=dist
+        npx cap add android
+        
+    - name: Sync Capacitor
+      run: npx cap sync
+      
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleDebug
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: attendflow-app
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: android/app/build/outputs/apk/debug/app-debug.apk
+        tag_name: v${{ github.run_number }}
+        name: AttendFlow APK v${{ github.run_number }}
+        body: |
+          📱 AttendFlow Android APK
+          
+          **Version:** ${{ github.run_number }}
+          **Build Date:** ${{ github.event.head_commit.timestamp }}
+          
+          ### Features:
+          - ✅ Attendance tracking
+          - ✅ Timetable management
+          - ✅ Excel file upload
+          - ✅ PWA support
+          - ✅ Offline functionality
+          
+          ### Installation:
+          1. Download the APK file
+          2. Enable "Unknown Sources" on your Android device
+          3. Install the APK
+          4. Launch AttendFlow from your home screen
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
