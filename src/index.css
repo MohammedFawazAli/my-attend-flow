@@ -2,41 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* AttendFlow Design System - Clean, Professional, Student-Friendly */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core Background & Text */
+    --background: 240 10% 98%;
+    --foreground: 220 20% 15%;
 
+    /* Card System */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 20% 15%;
+    --card-shadow: 220 20% 80%;
 
+    /* Interactive Elements */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 20% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary Brand (Professional Blue) */
+    --primary: 215 85% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 215 85% 45%;
+    --primary-light: 215 85% 95%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary (Soft Gray) */
+    --secondary: 220 10% 96%;
+    --secondary-foreground: 220 20% 30%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted Elements */
+    --muted: 220 10% 95%;
+    --muted-foreground: 220 15% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent (Complementary Orange) */
+    --accent: 25 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 25 95% 95%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Status Colors */
+    --success: 140 70% 50%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 140 70% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --warning: 35 90% 55%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 35 90% 95%;
 
-    --radius: 0.5rem;
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-light: 0 80% 95%;
+
+    /* Subject Color Palette */
+    --subject-1: 260 80% 60%;  /* Purple */
+    --subject-2: 140 70% 50%;  /* Green */
+    --subject-3: 200 85% 55%;  /* Blue */
+    --subject-4: 25 90% 55%;   /* Orange */
+    --subject-5: 320 70% 55%;  /* Pink */
+    --subject-6: 180 60% 50%;  /* Teal */
+    --subject-7: 45 80% 55%;   /* Gold */
+    --subject-8: 300 50% 55%;  /* Magenta */
+
+    /* Form Elements */
+    --border: 220 15% 88%;
+    --input: 220 15% 96%;
+    --input-focus: 215 85% 50%;
+    --ring: 215 85% 50%;
+
+    /* Layout */
+    --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(215 85% 60%));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(140 70% 60%));
+    --gradient-card: linear-gradient(180deg, hsl(var(--card)), hsl(220 10% 99%));
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +139,50 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
+}
+
+/* Custom Component Styles */
+@layer components {
+  .stat-card {
+    @apply bg-card border border-border rounded-lg p-4 shadow-sm;
+    background: var(--gradient-card);
+  }
+  
+  .subject-badge {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .attendance-progress {
+    @apply relative overflow-hidden rounded-full bg-muted;
+  }
+  
+  .timetable-cell {
+    @apply border border-border rounded-md p-2 min-h-16 flex flex-col justify-center items-center text-center cursor-pointer transition-all hover:shadow-md;
+  }
+  
+  .low-attendance {
+    @apply bg-destructive-light border-destructive text-destructive-foreground;
+  }
+  
+  .good-attendance {
+    @apply bg-success-light border-success text-success-foreground;
+  }
+  
+  .medium-attendance {
+    @apply bg-warning-light border-warning text-warning-foreground;
+  }
+}
+
+/* Subject Color Classes */
+@layer utilities {
+  .subject-color-1 { @apply bg-[hsl(var(--subject-1))] text-white; }
+  .subject-color-2 { @apply bg-[hsl(var(--subject-2))] text-white; }
+  .subject-color-3 { @apply bg-[hsl(var(--subject-3))] text-white; }
+  .subject-color-4 { @apply bg-[hsl(var(--subject-4))] text-white; }
+  .subject-color-5 { @apply bg-[hsl(var(--subject-5))] text-white; }
+  .subject-color-6 { @apply bg-[hsl(var(--subject-6))] text-white; }
+  .subject-color-7 { @apply bg-[hsl(var(--subject-7))] text-white; }
+  .subject-color-8 { @apply bg-[hsl(var(--subject-8))] text-white; }
 }
