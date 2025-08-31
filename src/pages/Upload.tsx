@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload as UploadIcon, FileSpreadsheet, AlertTriangle, Check, X, Edit3, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,39 +51,90 @@ export default function Upload() {
     setIsProcessing(true);
     
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      
-      if (lines.length < 2) {
-        throw new Error('File must contain at least a header row and one data row');
+      let headers: string[] = [];
+      let dataRows: string[][] = [];
+
+      // Check file type and parse accordingly
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        // Handle Excel files
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (jsonData.length < 2) {
+          throw new Error('Excel file must contain at least a header row and one data row');
+        }
+        
+        headers = jsonData[0].map((h: any) => String(h || '').trim());
+        dataRows = jsonData.slice(1).map(row => 
+          row.map((cell: any) => String(cell || '').trim())
+        );
+      } else if (file.name.endsWith('.csv')) {
+        // Handle CSV files
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          throw new Error('CSV file must contain at least a header row and one data row');
+        }
+
+        headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        dataRows = lines.slice(1).map(line => 
+          line.split(',').map(cell => cell.trim().replace(/"/g, ''))
+        );
+      } else {
+        throw new Error('Unsupported file format. Please upload .xlsx, .xls, or .csv files only.');
       }
 
-      // Parse CSV data
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
       console.log('Parsed headers:', headers);
-      console.log('First header:', `"${headers[0]}"`);
-      const timeColumn = headers.findIndex(h => h.toLowerCase().includes('time'));
-      console.log('Time column index:', timeColumn);
+      console.log('Sample data rows:', dataRows.slice(0, 2));
+
+      // Find time column
+      const timeColumn = headers.findIndex(h => 
+        h && h.toLowerCase().includes('time')
+      );
       
       if (timeColumn === -1) {
-        throw new Error(`Time column not found. Headers found: ${headers.join(', ')}. First column should contain 'time'.`);
+        throw new Error(`Time column not found. 
+        
+Headers found: ${headers.filter(h => h).join(', ')}
+
+Please ensure:
+• First column contains "time" in the header
+• File has proper column headers
+• Data is formatted correctly`);
       }
 
+      // Find day columns
       const dayColumns = headers.slice(1).map((header, index) => ({
         name: header,
         index: index + 1
       })).filter(col => 
-        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        col.name && ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
           .some(day => col.name.toLowerCase().includes(day))
       );
 
+      if (dayColumns.length === 0) {
+        throw new Error(`No day columns found. 
+        
+Headers found: ${headers.filter(h => h).join(', ')}
+
+Please ensure columns contain day names like:
+• Monday, Tuesday, Wednesday, etc.
+• Days can be abbreviated (Mon, Tue, Wed, etc.)`);
+      }
+
+      console.log('Day columns found:', dayColumns.map(col => col.name));
+
       const timetableData: TimetableEntry[] = [];
       
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(',').map(cell => cell.trim().replace(/"/g, ''));
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i];
         const time = row[timeColumn];
         
-        if (!time) continue;
+        if (!time || time.trim() === '') continue;
 
         dayColumns.forEach(dayCol => {
           const subject = row[dayCol.index];
@@ -103,12 +155,23 @@ export default function Upload() {
         });
       }
 
+      if (timetableData.length === 0) {
+        throw new Error(`No valid timetable entries found. 
+        
+Please check:
+• Time column has valid times (09:00, 10:00, etc.)
+• Day columns contain subject names
+• Avoid cells with only "Free" or empty cells
+• Format: "Subject Name" or "Subject Name (Room)"`);
+      }
+
       setParsedData(timetableData);
       setShowPreview(true);
       
       toast.success(`File parsed successfully! Found ${timetableData.length} timetable entries`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Please check the file format");
+      console.error('File processing error:', error);
+      toast.error(error instanceof Error ? error.message : "Unknown error occurred while processing file");
     } finally {
       setIsProcessing(false);
     }
@@ -207,9 +270,11 @@ export default function Upload() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
-            <p>First row should contain days (Monday, Tuesday, etc.)</p>
-            <p>First column should contain times (09:00, 10:00, etc.)</p>
-            <p>Cells should contain "Subject Name (Room)" or just "Subject Name"</p>
+            <p>✅ Excel files (.xlsx, .xls) and CSV files (.csv) supported</p>
+            <p>✅ First row should contain days (Monday, Tuesday, etc.)</p>
+            <p>✅ First column should contain times (09:00, 10:00, etc.)</p>
+            <p>✅ Cells should contain "Subject Name (Room)" or just "Subject Name"</p>
+            <p>❌ Empty cells and "Free" periods will be ignored</p>
           </CardContent>
         </Card>
 
