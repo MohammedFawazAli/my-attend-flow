@@ -59,10 +59,13 @@ export default function Upload() {
 
       // Parse CSV data
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      console.log('Parsed headers:', headers);
+      console.log('First header:', `"${headers[0]}"`);
       const timeColumn = headers.findIndex(h => h.toLowerCase().includes('time'));
+      console.log('Time column index:', timeColumn);
       
       if (timeColumn === -1) {
-        throw new Error('Time column not found. First column should contain times.');
+        throw new Error(`Time column not found. Headers found: ${headers.join(', ')}. First column should contain 'time'.`);
       }
 
       const dayColumns = headers.slice(1).map((header, index) => ({
